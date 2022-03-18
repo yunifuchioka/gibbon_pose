@@ -1,0 +1,8 @@
+# python cache files
+**/__pycache__/
+
+# dataset
+**/dataset/
+
+# vscode configs
+**/.vscode
