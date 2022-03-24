@@ -57,15 +57,15 @@ def plot_pose_on_img(pose, ax=plt):
             pose["right_ankle"],
         )
     )
-    plt.plot(face_coords[:, 0], face_coords[:, 1], "-o")
-    plt.plot(spine_coords[:, 0], spine_coords[:, 1], "-o")
-    plt.plot(left_arm_coords[:, 0], left_arm_coords[:, 1], "-o")
-    plt.plot(right_arm_coords[:, 0], right_arm_coords[:, 1], "-o")
-    plt.plot(left_leg_coords[:, 0], left_leg_coords[:, 1], "-o")
-    plt.plot(right_leg_coords[:, 0], right_leg_coords[:, 1], "-o")
+    ax.plot(face_coords[:, 0], face_coords[:, 1], "-o")
+    ax.plot(spine_coords[:, 0], spine_coords[:, 1], "-o")
+    ax.plot(left_arm_coords[:, 0], left_arm_coords[:, 1], "-o")
+    ax.plot(right_arm_coords[:, 0], right_arm_coords[:, 1], "-o")
+    ax.plot(left_leg_coords[:, 0], left_leg_coords[:, 1], "-o")
+    ax.plot(right_leg_coords[:, 0], right_leg_coords[:, 1], "-o")
 
 
 def plot_img(img, pose=None, ax=plt):
-    plt.imshow(img)
+    ax.imshow(img)
     if pose is not None:
-        plot_pose_on_img(pose)
+        plot_pose_on_img(pose, ax)
