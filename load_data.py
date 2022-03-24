@@ -41,14 +41,11 @@ curr_img = np.pad(
 
 # get joint landmark locations and convert to dictionary
 curr_pose_array = np.array(curr["landmarks"]).reshape((17, 2))
-curr_pose = {}
-for landmark in Landmarks:
-    curr_pose[landmark.name] = curr_pose_array[landmark.value, :]
-
 # adjust landmark locations according to pad amount
 curr_pose_array[:, 1] += top_pad
 curr_pose_array[:, 0] += left_pad
+curr_pose_dict = keypoint_array2dict(curr_pose_array)
 
 
-plot_img(curr_img, curr_pose)
+plot_img(curr_img, curr_pose_dict)
 plt.show()

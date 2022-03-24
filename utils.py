@@ -23,6 +23,15 @@ class Landmarks(Enum):
     tail = 16
 
 
+# helper function to convert from keypoint array to dictionary
+def keypoint_array2dict(keypoint_array):
+    keypoint_array_reshape = keypoint_array.reshape((17, 2))
+    keypoint_dict = {}
+    for landmark in Landmarks:
+        keypoint_dict[landmark.name] = keypoint_array_reshape[landmark.value, :]
+    return keypoint_dict
+
+
 # helper function to plot poses
 def plot_pose_on_img(pose, ax=plt):
     face_coords = np.vstack((pose["left_eye"], pose["nose"], pose["right_eye"]))
