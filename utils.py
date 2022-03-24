@@ -3,7 +3,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
-class Landmarks(Enum):
+class Keypoints(Enum):
     right_eye = 0
     left_eye = 1
     nose = 2
@@ -27,8 +27,8 @@ class Landmarks(Enum):
 def keypoint_array2dict(keypoint_array):
     keypoint_array_reshape = keypoint_array.reshape((17, 2))
     keypoint_dict = {}
-    for landmark in Landmarks:
-        keypoint_dict[landmark.name] = keypoint_array_reshape[landmark.value, :]
+    for keypoint in Keypoints:
+        keypoint_dict[keypoint.name] = keypoint_array_reshape[keypoint.value, :]
     return keypoint_dict
 
 
