@@ -8,11 +8,24 @@ from utils import *
 
 class GibGenerator(BaseGenerator):
     def __init__(self, **kwargs):
+        """
+        Initializes the class.
+        If graph and swap_index are not defined,
+        they are set to a vector of -1 corresponding
+        to keypoints shape
+        """
         df_raw = pd.read_json("dataset/train_annotation.json", orient="split")
         self.df_gib = df_raw[df_raw.species == "Gibbon"]  # extract only gibbon entries
         # sets indices specific to gibbon only dataframe
         self.df_gib = self.df_gib.reset_index()
         self.num_data = self.df_gib.shape[0]  # number of images
+
+        self.graph = (
+            np.full(self.compute_keypoints_shape(), -1).flatten().astype(np.int16)
+        )
+        self.swap_index = (
+            np.full(self.compute_keypoints_shape(), -1).flatten().astype(np.int16)
+        )
 
     def __len__(self):
         """
@@ -27,7 +40,7 @@ class GibGenerator(BaseGenerator):
         (height, width, n_channels)
         """
         # set to be the same over all images via zero padding
-        return (500, 500, 2)
+        return (512, 512, 3)
 
     def compute_keypoints_shape(self):
         """
@@ -52,18 +65,10 @@ class GibGenerator(BaseGenerator):
             # determine image size and pad accordingly
             img_shape = self.compute_image_shape()
             curr_img_height, curr_img_width, _ = curr_img.shape
-            top_pad = np.floor((img_shape[0] - curr_img_height) / 2).astype(
-                np.uint16
-            )
-            bottom_pad = np.ceil((img_shape[0] - curr_img_height) / 2).astype(
-                np.uint16
-            )
-            right_pad = np.ceil((img_shape[1] - curr_img_width) / 2).astype(
-                np.uint16
-            )
-            left_pad = np.floor((img_shape[1] - curr_img_width) / 2).astype(
-                np.uint16
-            )
+            top_pad = np.floor((img_shape[0] - curr_img_height) / 2).astype(np.uint16)
+            bottom_pad = np.ceil((img_shape[0] - curr_img_height) / 2).astype(np.uint16)
+            right_pad = np.ceil((img_shape[1] - curr_img_width) / 2).astype(np.uint16)
+            left_pad = np.floor((img_shape[1] - curr_img_width) / 2).astype(np.uint16)
             curr_img = np.pad(
                 curr_img,
                 ((top_pad, bottom_pad), (left_pad, right_pad), (0, 0)),
@@ -92,17 +97,13 @@ class GibGenerator(BaseGenerator):
             curr_img = np.array(Image.open("dataset/train/" + curr["file"]))
             curr_img_height, curr_img_width, _ = curr_img.shape
             img_shape = self.compute_image_shape()
-            top_pad = np.floor((img_shape[0] - curr_img_height) / 2).astype(
-                np.uint16
-            )
-            left_pad = np.floor((img_shape[1] - curr_img_width) / 2).astype(
-                np.uint16
-            )
+            top_pad = np.floor((img_shape[0] - curr_img_height) / 2).astype(np.uint16)
+            left_pad = np.floor((img_shape[1] - curr_img_width) / 2).astype(np.uint16)
             curr_pose_array[:, 0] += left_pad
             curr_pose_array[:, 1] += top_pad
 
             keypoints_array.append(curr_pose_array)
-        keypoints = np.stack(keypoints_array)
+        keypoints = np.stack(keypoints_array).astype(np.float64)
         return keypoints
 
     def set_keypoints(self, indexes, keypoints):
