@@ -6,3 +6,6 @@
 
 # vscode configs
 **/.vscode
+
+# training results
+**/results/
