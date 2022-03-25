@@ -41,4 +41,4 @@ if __name__ == "__main__":
         raise argparse.ArgumentTypeError("invalid model type")
 
     model.fit(batch_size=args.batch_size, epochs=args.epochs, n_workers=args.n_workers)
-    model.save("stats/{}.h5".format(args.name))
+    model.save("results/{}.h5".format(args.name))
