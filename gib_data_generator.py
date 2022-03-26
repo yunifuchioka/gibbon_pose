@@ -118,8 +118,17 @@ if __name__ == "__main__":
     images = generator.get_images(indices)
     keypoints = generator.get_keypoints(indices)
 
-    for img_idx in range(images.shape[0]):
-        plot_img(
-            images[img_idx, :, :, :], keypoint_array2dict(keypoints[img_idx, :, :])
-        )
-        plt.show()
+    import cv2
+
+    video = cv2.VideoWriter('results/train_video.mp4', cv2.VideoWriter_fourcc(*'mp4v'), 30.0, (512, 512))
+
+    for idx in range(len(indices)):
+        video.write(images[idx,:,:,:])
+
+    video.release()
+
+    # for img_idx in range(images.shape[0]):
+    #     plot_img(
+    #         images[img_idx, :, :, :], keypoint_array2dict(keypoints[img_idx, :, :])
+    #     )
+    #     plt.show()

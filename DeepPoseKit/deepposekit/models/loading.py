@@ -13,7 +13,8 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-from tensorflow.python.keras.saving import save
+# from tensorflow.python.keras.saving import save
+import tensorflow.keras.models as tfkm
 
 import h5py
 import json
@@ -76,21 +77,22 @@ def load_model(path, generator=None, augmenter=None, custom_objects=None, compil
     else:
         raise TypeError("file must be type `str`")
 
-    train_model = save.load_model(filepath, custom_objects=custom_objects, compile=compile)
+    # train_model = save.load_model(filepath, custom_objects=custom_objects, compile=compile)
+    train_model = tfkm.load_model(filepath, custom_objects=custom_objects, compile=compile)
 
     with h5py.File(filepath, "r") as h5file:
         train_generator_config = h5file.attrs.get("train_generator_config")
         if train_generator_config is None:
             raise ValueError("No data generator found in config file")
-        train_generator_config = json.loads(train_generator_config.decode("utf-8"))[
+        train_generator_config = json.loads(train_generator_config)[
             "config"
         ]
 
         model_config = h5file.attrs.get("pose_model_config")
         if model_config is None:
             raise ValueError("No pose model found in config file")
-        model_name = json.loads(model_config.decode("utf-8"))["class_name"]
-        model_config = json.loads(model_config.decode("utf-8"))["config"]
+        model_name = json.loads(model_config)["class_name"]
+        model_config = json.loads(model_config)["config"]
 
     if generator is not None:
         signature = inspect.signature(TrainingGenerator.__init__)
