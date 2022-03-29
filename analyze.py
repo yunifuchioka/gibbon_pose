@@ -1,18 +1,22 @@
+import numpy as np
+from tensorflow import keras
+
 from deepposekit.models import load_model
 from deepposekit.io import VideoReader
 
-from tensorflow import keras
-
+from gib_data_generator import GibGenerator
 from utils import *
 
-model = load_model("results/03-25-2022_07-44-01.h5")
+if __name__ == "__main__":
+    model = load_model("results/dlc_40.h5")
 
-reader = VideoReader('results/train_video.mp4', batch_size=1)
-predictions = model.predict(reader)
+    generator = GibGenerator()
 
-reader2 = VideoReader('results/train_video.mp4', batch_size=1)
-for idx in range(len(reader2)):
-    img = reader2.read()
-    pose = predictions[idx,:,:2]
-    plot_img(img, keypoint_array2dict(pose))
-    plt.show()
+    indices = np.random.randint(low=0, high=len(generator), size=10)
+    for idx in indices:
+        img, gt_pose = generator[idx]
+        predictions = model.predict_on_batch(img)
+        pose = predictions[0, :, :2]
+        plot_img(img[0, :, :, :], keypoint_array2dict(pose))
+        plt.title(idx)
+        plt.show()
