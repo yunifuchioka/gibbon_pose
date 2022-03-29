@@ -78,3 +78,13 @@ def plot_img(img, pose=None, ax=plt):
     ax.imshow(img)
     if pose is not None:
         plot_pose_on_img(pose, ax)
+
+
+def plot_img_pred(img, predictions, ax=plt, thresh=0.2):
+    ax.imshow(img)
+
+    coord_above_thresh = predictions[predictions[:, 2] > thresh, :2]
+
+    ax.plot(
+        coord_above_thresh[:, 0], coord_above_thresh[:, 1], "o", ms=10, mec="r", mfc="r"
+    )

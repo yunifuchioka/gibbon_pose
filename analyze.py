@@ -7,6 +7,7 @@ from deepposekit.io import VideoReader
 from gib_data_generator import GibGenerator
 from utils import *
 
+
 def analyze_train_set(model):
     generator = GibGenerator()
 
@@ -15,9 +16,10 @@ def analyze_train_set(model):
         img, gt_pose = generator[idx]
         predictions = model.predict_on_batch(img)
         pose = predictions[0, :, :2]
-        plot_img(img[0, :, :, :], keypoint_array2dict(pose))
+        plot_img_pred(img[0, :, :, :], predictions[0, :, :])
         plt.title(idx)
         plt.show()
+
 
 def analyze_video(model):
     generator = VideoReader("videos/brach-2D-crop.mp4", batch_size=1)
@@ -28,7 +30,7 @@ def analyze_video(model):
         img = generator[k]
         predictions = model.predict_on_batch(img)
         pose = predictions[0, :, :2]
-        plot_img(img[0, :, :, :], keypoint_array2dict(pose))
+        plot_img_pred(img[0, :, :, :], predictions[0, :, :])
 
     import matplotlib.animation as animation
 
@@ -36,7 +38,7 @@ def analyze_video(model):
         fig,
         draw_frame,
         frames=len(generator) // 2,
-        interval= 0.033 * 1000.0,
+        interval=0.033 * 1000.0,
         repeat=True,
         blit=False,
     )
@@ -47,9 +49,11 @@ def analyze_video(model):
 
     plt.show()
 
+
 if __name__ == "__main__":
     model = load_model("results/dlc_40.h5")
     # model = load_model("results/03-24-2022_23-44-25.h5")
+    # model = load_model("results/dense_init.h5")
 
     # analyze_train_set(model)
     analyze_video(model)
