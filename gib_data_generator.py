@@ -44,8 +44,7 @@ class GibGenerator(BaseGenerator):
             curr_img = np.pad(
                 curr_img,
                 ((top_pad, bottom_pad), (left_pad, right_pad), (0, 0)),
-                mode="constant",
-                constant_values=0,
+                mode="reflect",
             )
 
             curr_pose_array = np.array(curr["landmarks"]).reshape(
@@ -118,17 +117,17 @@ if __name__ == "__main__":
     images = generator.get_images(indices)
     keypoints = generator.get_keypoints(indices)
 
-    import cv2
+    # import cv2
 
-    video = cv2.VideoWriter('results/train_video.mp4', cv2.VideoWriter_fourcc(*'mp4v'), 30.0, (512, 512))
+    # video = cv2.VideoWriter('results/train_video.mp4', cv2.VideoWriter_fourcc(*'mp4v'), 30.0, (512, 512))
 
-    for idx in range(len(indices)):
-        video.write(images[idx,:,:,:])
+    # for idx in range(len(indices)):
+    #     video.write(images[idx,:,:,:])
 
-    video.release()
+    # video.release()
 
-    # for img_idx in range(images.shape[0]):
-    #     plot_img(
-    #         images[img_idx, :, :, :], keypoint_array2dict(keypoints[img_idx, :, :])
-    #     )
-    #     plt.show()
+    for img_idx in range(images.shape[0]):
+        plot_img(
+            images[img_idx, :, :, :], keypoint_array2dict(keypoints[img_idx, :, :])
+        )
+        plt.show()
