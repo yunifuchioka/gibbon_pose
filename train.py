@@ -1,4 +1,5 @@
 import argparse
+import os
 from datetime import datetime
 
 from deepposekit.io import DataGenerator, TrainingGenerator
@@ -16,7 +17,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("-b", "--batch_size", type=int, help="batch size", default=4)
     parser.add_argument(
-        "-e", "--epochs", type=int, help="number of training epochs", default=10
+        "-e", "--epochs", type=int, help="number of training epochs", default=100
     )
     parser.add_argument(
         "-w", "--n_workers", type=int, help="number of processes", default=8
@@ -28,6 +29,11 @@ if __name__ == "__main__":
     args = parser.parse_args()
     if args.name is None:
         args.name = datetime.now().strftime("%m-%d-%Y_%H-%M-%S")
+
+    save_dir = "results/{}/".format(args.name)
+    # create results dir if not there already
+    if not os.path.exists(save_dir):
+        os.makedirs(save_dir)
 
     data_generator = GibGenerator()
     train_generator = TrainingGenerator(
@@ -49,5 +55,7 @@ if __name__ == "__main__":
     else:
         raise argparse.ArgumentTypeError("invalid model type")
 
-    model.fit(batch_size=args.batch_size, epochs=args.epochs, n_workers=args.n_workers)
-    model.save("results/{}.h5".format(args.name))
+    for epoch in range(args.epochs):
+        print("Epoch {}/{}".format(epoch + 1, args.epochs))
+        model.fit(batch_size=args.batch_size, epochs=1, n_workers=args.n_workers)
+        model.save(save_dir + "epoch-{}.h5".format(epoch))
