@@ -21,19 +21,26 @@ if __name__ == "__main__":
     parser.add_argument(
         "-w", "--n_workers", type=int, help="number of processes", default=8
     )
+    parser.add_argument(
+        "-v", "--valid_split", type=float, help="validation split", default=0.2
+    )
 
     args = parser.parse_args()
     if args.name is None:
         args.name = datetime.now().strftime("%m-%d-%Y_%H-%M-%S")
 
     data_generator = GibGenerator()
-    train_generator = TrainingGenerator(data_generator)
+    train_generator = TrainingGenerator(
+        data_generator, validation_split=args.valid_split
+    )
 
     if args.model == "deep_lab_cut":
         model = DeepLabCut(train_generator)
     elif args.model == "leap":
         # need to overwrite train_generator with 0 downsample factor for LEAP
-        train_generator = TrainingGenerator(data_generator, downsample_factor=0)
+        train_generator = TrainingGenerator(
+            data_generator, downsample_factor=0, validation_split=args.valid_split
+        )
         model = LEAP(train_generator)
     elif args.model == "stacked_dense_net":
         model = StackedDenseNet(train_generator)
