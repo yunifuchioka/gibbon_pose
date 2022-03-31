@@ -213,6 +213,8 @@ def find_subpixel_maxima(
         channels = x_shape[3]
         x = permute_dimensions(x, [0, 3, 1, 2])
         x = K.reshape(x, [batch * channels, row, col])
+        if dtype(x) == "float64":
+            x = tf.cast(x, "float32")
         x = _find_subpixel_maxima(
             x, kernel_size, sigma, upsample_factor, coordinate_scale, confidence_scale
         )

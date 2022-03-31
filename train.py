@@ -30,13 +30,15 @@ if __name__ == "__main__":
     train_generator = TrainingGenerator(data_generator)
 
     if args.model == "deep_lab_cut":
-        model = DeepLabCut(train_generator, subpixel=False)
-    # elif args.model == "leap":
-    #     model = LEAP(train_generator, subpixel=False)
+        model = DeepLabCut(train_generator)
+    elif args.model == "leap":
+        # need to overwrite train_generator with 0 downsample factor for LEAP
+        train_generator = TrainingGenerator(data_generator, downsample_factor=0)
+        model = LEAP(train_generator)
     elif args.model == "stacked_dense_net":
-        model = StackedDenseNet(train_generator, subpixel=False)
+        model = StackedDenseNet(train_generator)
     elif args.model == "stacked_hourglass":
-        model = StackedHourglass(train_generator, subpixel=False)
+        model = StackedHourglass(train_generator)
     else:
         raise argparse.ArgumentTypeError("invalid model type")
 
