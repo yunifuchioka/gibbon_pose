@@ -78,5 +78,5 @@ if __name__ == "__main__":
             epochs=1,
             n_workers=args.n_workers,
         )
-        if epoch % 10 == 0:
+        if epoch + 1 % 10 == 0:
             model.save(save_dir + "epoch-{}.h5".format(epoch))
