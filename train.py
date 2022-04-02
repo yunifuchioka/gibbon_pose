@@ -1,6 +1,10 @@
 import argparse
 import os
 from datetime import datetime
+import gc
+from tensorflow.keras import backend as k
+from tensorflow.keras.callbacks import Callback
+
 
 from deepposekit.io import DataGenerator, TrainingGenerator
 from deepposekit.models import DeepLabCut, LEAP, StackedDenseNet, StackedHourglass
@@ -15,7 +19,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "-m", "--model", type=str, help="network model", default="deep_lab_cut"
     )
-    parser.add_argument("-b", "--batch_size", type=int, help="batch size", default=4)
+    parser.add_argument("-b", "--batch_size", type=int, help="batch size", default=2)
     parser.add_argument(
         "-e", "--epochs", type=int, help="number of training epochs", default=100
     )
@@ -55,7 +59,24 @@ if __name__ == "__main__":
     else:
         raise argparse.ArgumentTypeError("invalid model type")
 
+    # https://github.com/tensorflow/tensorflow/issues/31312#issuecomment-821809246
+    class ClearMemory(Callback):
+        def on_epoch_end(self, epoch, logs=None):
+            gc.collect()
+            k.clear_session()
+
+    callbacks_list = [ClearMemory()]
+
+    model.compile(optimizer="adam", loss="mse", run_eagerly=True)
+
     for epoch in range(args.epochs):
         print("Epoch {}/{}".format(epoch + 1, args.epochs))
-        model.fit(batch_size=args.batch_size, epochs=1, n_workers=args.n_workers)
-        model.save(save_dir + "epoch-{}.h5".format(epoch))
+        model.fit(
+            batch_size=args.batch_size,
+            validation_batch_size=args.batch_size,
+            callbacks=callbacks_list,
+            epochs=1,
+            n_workers=args.n_workers,
+        )
+        if epoch % 10 == 0:
+            model.save(save_dir + "epoch-{}.h5".format(epoch))
