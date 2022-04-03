@@ -7,7 +7,7 @@ import cv2
 # https://stackoverflow.com/a/61724147
 
 # Open the video
-cap = cv2.VideoCapture("videos/brach-fence.mp4")
+cap = cv2.VideoCapture("videos/brach-naples.mp4")
 
 # Initialize frame counter
 cnt = 0
@@ -26,7 +26,7 @@ y = h_frame // 2 - h // 2
 
 # output
 out = cv2.VideoWriter(
-    "videos/brach-fence-crop.mp4", cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h)
+    "videos/brach-naples-crop.mp4", cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h)
 )
 
 
