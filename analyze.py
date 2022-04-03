@@ -1,3 +1,4 @@
+from deepposekit.io.TrainingGenerator import TrainingGenerator
 import numpy as np
 from tensorflow import keras
 
@@ -9,7 +10,9 @@ from utils import *
 
 
 def analyze_train_set(model):
-    generator = GibGenerator()
+    base_generator = GibGenerator()
+    # training generator supports shuffling
+    generator = TrainingGenerator(base_generator)
 
     indices = np.random.randint(low=0, high=len(generator), size=10)
     for idx in indices:
@@ -27,10 +30,10 @@ def analyze_video(model):
 
     def draw_frame(k):
         fig.clear()
-        img = generator[k]
+        img = generator[k][:, :, :, [2, 1, 0]]
         predictions = model.predict_on_batch(img)
         pose = predictions[0, :, :2]
-        plot_img_pred(img[0, :, :, :], predictions[0, :, :])
+        plot_img_pred(img[0, :, :, :], predictions[0, :, :], thresh=0.07)
 
     import matplotlib.animation as animation
 
@@ -45,13 +48,15 @@ def analyze_video(model):
 
     Writer = animation.writers["ffmpeg"]
     writer = Writer(fps=33.3, metadata=dict(artist="Me"), bitrate=1000)
-    anim.save("videos/brach-2D-pred.mp4", writer=writer)
+    anim.save(
+        "videos/brach-2D-04-01-2022_dlc_gc4_epoch-90_thresh-07_rgb.mp4", writer=writer
+    )
 
     plt.show()
 
 
 if __name__ == "__main__":
-    model = load_model("results/dlc_40.h5")
+    model = load_model("results/04-01-2022_dlc_gc4/epoch-90.h5")
     # model = load_model("results/03-24-2022_23-44-25.h5")
     # model = load_model("results/dense_init.h5")
 
