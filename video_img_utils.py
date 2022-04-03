@@ -7,7 +7,7 @@ import cv2
 # https://stackoverflow.com/a/61724147
 
 # Open the video
-cap = cv2.VideoCapture("videos/brach-2D.mp4")
+cap = cv2.VideoCapture("videos/brach-fence.mp4")
 
 # Initialize frame counter
 cnt = 0
@@ -21,12 +21,12 @@ fps, frames = cap.get(cv2.CAP_PROP_FPS), cap.get(cv2.CAP_PROP_FRAME_COUNT)
 # Here you can define your croping values
 w = 512
 h = 512
-x = w_frame // 2 - w // 2
-y = h_frame // 2 - h // 2 - 100
+x = w_frame // 2 - w // 2 - 200
+y = h_frame // 2 - h // 2
 
 # output
 out = cv2.VideoWriter(
-    "videos/brach-2D-crop.mp4", cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h)
+    "videos/brach-fence-crop.mp4", cv2.VideoWriter_fourcc(*"mp4v"), fps, (w, h)
 )
 
 
