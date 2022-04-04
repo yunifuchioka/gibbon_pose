@@ -54,19 +54,26 @@ def analyze_video(model):
     plt.show()
 
 
-def compare_training_set(model1, model2):
+def compare_training_set(model1, model2, model3=None):
     generator = GibGenerator()
 
     num_images = 5
     indices = np.random.randint(low=0, high=len(generator), size=num_images)
 
-    fig, ax = plt.subplots(2, num_images, sharex=True, sharey=True, figsize=(15, 7))
+    if model3 is None:
+        num_rows = 2
+    else:
+        num_rows = 3
+
+    fig, ax = plt.subplots(
+        num_rows, num_images, sharex=True, sharey=True, figsize=(15, 7)
+    )
     fig.subplots_adjust(wspace=0)
     for count, idx in enumerate(indices):
         img, gt_pose = generator[idx]
         predictions = model1.predict_on_batch(img)
         pose = predictions[0, :, :2]
-        plt.subplot(2, num_images, count + 1)
+        plt.subplot(num_rows, num_images, count + 1)
         plot_img_pred(img[0, :, :, :], predictions[0, :, :], thresh=0.07)
         plt.axis("off")
         # plt.title(idx)
@@ -75,10 +82,21 @@ def compare_training_set(model1, model2):
         img, gt_pose = generator[idx]
         predictions = model2.predict_on_batch(img)
         pose = predictions[0, :, :2]
-        plt.subplot(2, num_images, num_images + count + 1)
+        plt.subplot(num_rows, num_images, num_images + count + 1)
         plot_img_pred(img[0, :, :, :], predictions[0, :, :], thresh=0.07)
         plt.axis("off")
         # plt.title(idx)
+
+    if model3 is not None:
+        for count, idx in enumerate(indices):
+            img, gt_pose = generator[idx]
+            predictions = model3.predict_on_batch(img)
+            pose = predictions[0, :, :2]
+            plt.subplot(num_rows, num_images, num_images * 2 + count + 1)
+            plot_img_pred(img[0, :, :, :], predictions[0, :, :], thresh=0.07)
+            plt.axis("off")
+            # plt.title(idx)
+
     plt.show()
 
 
@@ -112,12 +130,15 @@ def overlay_interp(interp_pose):
 
 
 if __name__ == "__main__":
-    model = load_model("results/04-01-2022_dlc_gc4/epoch-60.h5")
-    model2 = load_model("results/04-03-2022_sdn/epoch-59.h5")
+    # model = load_model("results/04-01-2022_dlc_gc4/epoch-60.h5")
+    # model2 = load_model("results/04-03-2022_sdn/epoch-59.h5")
+    model = load_model("results/04-01-2022_dlc_gc4/epoch-10.h5")
+    model2 = load_model("results/04-01-2022_dlc_gc4/epoch-50.h5")
+    model3 = load_model("results/04-01-2022_dlc_gc4/epoch-90.h5")
 
     # analyze_train_set(model)
     # analyze_video(model)
-    compare_training_set(model, model2)
+    compare_training_set(model, model2, model3)
 
     # interp_pose = np.load("results/nil/dlc_40_results_pred_interpolated.npy")
     # overlay_interp(interp_pose)
