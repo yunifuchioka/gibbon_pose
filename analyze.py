@@ -101,7 +101,7 @@ def compare_training_set(model1, model2, model3=None):
 
 
 def overlay_interp(interp_pose):
-    generator = VideoReader("videos/brach-2D-crop.mp4", batch_size=1)
+    generator = VideoReader("videos/brach-2D.mp4", batch_size=1)
     fig = plt.figure()
 
     def draw_frame(k):
@@ -124,7 +124,9 @@ def overlay_interp(interp_pose):
 
     Writer = animation.writers["ffmpeg"]
     writer = Writer(fps=33.3, metadata=dict(artist="Me"), bitrate=1000)
-    anim.save("videos/brach-2D-dlc_40_pred_interpolated.mp4", writer=writer)
+    anim.save(
+        "videos/brach-2D-gibbon_swingDLC_resnet50_gibbons_interpol.mp4", writer=writer
+    )
 
     plt.show()
 
@@ -132,13 +134,13 @@ def overlay_interp(interp_pose):
 if __name__ == "__main__":
     # model = load_model("results/04-01-2022_dlc_gc4/epoch-60.h5")
     # model2 = load_model("results/04-03-2022_sdn/epoch-59.h5")
-    model = load_model("results/04-01-2022_dlc_gc4/epoch-10.h5")
-    model2 = load_model("results/04-01-2022_dlc_gc4/epoch-50.h5")
-    model3 = load_model("results/04-01-2022_dlc_gc4/epoch-90.h5")
+    # model = load_model("results/04-01-2022_dlc_gc4/epoch-10.h5")
+    # model2 = load_model("results/04-01-2022_dlc_gc4/epoch-50.h5")
+    # model3 = load_model("results/04-01-2022_dlc_gc4/epoch-90.h5")
 
     # analyze_train_set(model)
     # analyze_video(model)
-    compare_training_set(model, model2, model3)
+    # compare_training_set(model, model2, model3)
 
-    # interp_pose = np.load("results/nil/dlc_40_results_pred_interpolated.npy")
-    # overlay_interp(interp_pose)
+    interp_pose = np.load("results/nil/gibbon_swingDLC_resnet50_gibbons_interpol.npy")
+    overlay_interp(interp_pose)
