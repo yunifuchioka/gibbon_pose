@@ -7,14 +7,21 @@ from utils import *
 
 
 class GibGenerator(BaseGenerator):
-    def __init__(self, pad_mode="reflect", **kwargs):
+    def __init__(self, pad_mode="reflect", validation_set=False, **kwargs):
         """
         Initializes the class.
         If graph and swap_index are not defined,
         they are set to a vector of -1 corresponding
         to keypoints shape
         """
-        df_raw = pd.read_json("dataset/train_annotation.json", orient="split")
+        if validation_set == False:
+            annotation_filename = "dataset/train_annotation.json"
+            image_filedir = "dataset/train/"
+        else:
+            annotation_filename = "dataset/val_annotation.json"
+            image_filedir = "dataset/val/"
+
+        df_raw = pd.read_json(annotation_filename, orient="split")
         self.df_gib = df_raw[df_raw.species == "Gibbon"]  # extract only gibbon entries
         # sets indices specific to gibbon only dataframe
         self.df_gib = self.df_gib.reset_index()
@@ -32,7 +39,7 @@ class GibGenerator(BaseGenerator):
         keypoints_array = []
         for index in range(self.num_data):
             curr = self.df_gib.loc[index]
-            curr_img = np.array(Image.open("dataset/train/" + curr["file"]))
+            curr_img = np.array(Image.open(image_filedir + curr["file"]))
 
             # determine image size and pad accordingly
             img_shape = self.compute_image_shape()
@@ -111,8 +118,9 @@ class GibGenerator(BaseGenerator):
 
 
 if __name__ == "__main__":
-    generator = GibGenerator(pad_mode="constant")
-    indices = np.random.randint(low=0, high=len(generator), size=10)
+    generator = GibGenerator(pad_mode="constant", validation_set=True)
+    # indices = np.random.randint(low=0, high=len(generator), size=10)
+    indices = np.arange(10)
     images = generator.get_images(indices)
     keypoints = generator.get_keypoints(indices)
 
