@@ -7,7 +7,7 @@ from utils import *
 
 
 class GibGenerator(BaseGenerator):
-    def __init__(self, **kwargs):
+    def __init__(self, pad_mode="reflect", **kwargs):
         """
         Initializes the class.
         If graph and swap_index are not defined,
@@ -44,7 +44,7 @@ class GibGenerator(BaseGenerator):
             curr_img = np.pad(
                 curr_img,
                 ((top_pad, bottom_pad), (left_pad, right_pad), (0, 0)),
-                mode="reflect",
+                mode=pad_mode,
             )
 
             curr_pose_array = np.array(curr["landmarks"]).reshape(
@@ -57,7 +57,6 @@ class GibGenerator(BaseGenerator):
             keypoints_array.append(curr_pose_array)
         self.images = np.stack(images_array)
         self.keypoints = np.stack(keypoints_array).astype(np.float64)
-
 
     def __len__(self):
         """
@@ -89,7 +88,7 @@ class GibGenerator(BaseGenerator):
         Returns a numpy array of images with the shape:
         (n_samples, height, width, n_channels)
         """
-        return self.images[indexes,:,:,:]
+        return self.images[indexes, :, :, :]
 
     def get_keypoints(self, indexes):
         """
@@ -98,7 +97,7 @@ class GibGenerator(BaseGenerator):
         Returns a numpy array of keypoints with the shape:
         (n_samples, n_keypoints, 2), where 2 is the x,y coordinates
         """
-        return self.keypoints[indexes,:,:]
+        return self.keypoints[indexes, :, :]
 
     def set_keypoints(self, indexes, keypoints):
         """
@@ -112,7 +111,7 @@ class GibGenerator(BaseGenerator):
 
 
 if __name__ == "__main__":
-    generator = GibGenerator()
+    generator = GibGenerator(pad_mode="constant")
     indices = np.random.randint(low=0, high=len(generator), size=10)
     images = generator.get_images(indices)
     keypoints = generator.get_keypoints(indices)
