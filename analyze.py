@@ -68,7 +68,7 @@ def compare_training_set(model1, model2, model3=None):
     fig, ax = plt.subplots(
         num_rows, num_images, sharex=True, sharey=True, figsize=(15, 7)
     )
-    fig.subplots_adjust(wspace=0)
+    fig.subplots_adjust(wspace=0, hspace=0)
     for count, idx in enumerate(indices):
         img, gt_pose = generator[idx]
         predictions = model1.predict_on_batch(img)
