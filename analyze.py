@@ -25,7 +25,7 @@ def analyze_train_set(model):
 
 
 def analyze_video(model):
-    generator = VideoReader("videos/brach-naples-crop.mp4", batch_size=1)
+    generator = VideoReader("videos/brach-2D-crop.mp4", batch_size=1)
     fig = plt.figure()
 
     def draw_frame(k):
@@ -41,7 +41,7 @@ def analyze_video(model):
     anim = animation.FuncAnimation(
         fig,
         draw_frame,
-        frames=len(generator) // 3,
+        frames=len(generator) // 2,
         interval=0.033 * 1000.0,
         repeat=True,
         blit=False,
@@ -49,15 +49,13 @@ def analyze_video(model):
 
     Writer = animation.writers["ffmpeg"]
     writer = Writer(fps=33.3, metadata=dict(artist="Me"), bitrate=1000)
-    anim.save(
-        "videos/brach-naples-04-01-2022_dlc_gc4_epoch-90_thresh-07.mp4", writer=writer
-    )
+    anim.save("videos/brach-2D-04-03-2022_sdn_epoch-59_thresh-07.mp4", writer=writer)
 
     plt.show()
 
 
 if __name__ == "__main__":
-    model = load_model("results/04-01-2022_dlc_gc4/epoch-90.h5")
+    model = load_model("results/04-03-2022_sdn/epoch-59.h5")
 
     # analyze_train_set(model)
     analyze_video(model)
