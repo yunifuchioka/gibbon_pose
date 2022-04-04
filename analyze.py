@@ -130,6 +130,21 @@ def overlay_interp(interp_pose):
 
     plt.show()
 
+def pred_entire_dataset(model):
+    generator = GibGenerator()
+
+    predictions_list = []
+
+    indices = np.arange(len(generator))
+    for idx in indices:
+        img, gt_pose = generator[idx]
+        predictions = model.predict_on_batch(img)
+        predictions_list.append(predictions.squeeze())
+        print(idx)
+    
+    save_array = np.stack(predictions_list)
+    np.save("04-01-2022_dlc_gc4_epoch-90_training-set-pred", save_array)
+
 
 if __name__ == "__main__":
     # model = load_model("results/04-01-2022_dlc_gc4/epoch-60.h5")
@@ -142,5 +157,8 @@ if __name__ == "__main__":
     # analyze_video(model)
     # compare_training_set(model, model2, model3)
 
-    interp_pose = np.load("results/nil/gibbon_swingDLC_resnet50_gibbons_interpol.npy")
-    overlay_interp(interp_pose)
+    # interp_pose = np.load("results/nil/gibbon_swingDLC_resnet50_gibbons_interpol.npy")
+    # overlay_interp(interp_pose)
+
+    model = load_model("results/04-01-2022_dlc_gc4/epoch-90.h5")
+    pred_entire_dataset(model)
