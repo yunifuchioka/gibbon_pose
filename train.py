@@ -39,7 +39,7 @@ if __name__ == "__main__":
     if not os.path.exists(save_dir):
         os.makedirs(save_dir)
 
-    data_generator = GibGenerator()
+    data_generator = GibGenerator(pad_mode="constant")
     train_generator = TrainingGenerator(
         data_generator, validation_split=args.valid_split
     )
