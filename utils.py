@@ -86,5 +86,5 @@ def plot_img_pred(img, predictions, ax=plt, thresh=0.2):
     coord_above_thresh = predictions[predictions[:, 2] > thresh, :2]
 
     ax.plot(
-        coord_above_thresh[:, 0], coord_above_thresh[:, 1], "o", ms=10, mec="r", mfc="r"
+        coord_above_thresh[:, 0], coord_above_thresh[:, 1], "o", ms=5, mec="r", mfc="r"
     )
