@@ -130,8 +130,9 @@ def overlay_interp(interp_pose):
 
     plt.show()
 
+
 def pred_entire_dataset(model):
-    generator = GibGenerator()
+    generator = GibGenerator(pad_mode="constant", validation_set=True)
 
     predictions_list = []
 
@@ -141,9 +142,13 @@ def pred_entire_dataset(model):
         predictions = model.predict_on_batch(img)
         predictions_list.append(predictions.squeeze())
         print(idx)
-    
+
     save_array = np.stack(predictions_list)
-    np.save("04-01-2022_dlc_gc4_epoch-90_training-set-pred", save_array)
+    # np.save("results/04-01-2022_dlc_gc4_epoch-90_val-pred_reflect-pad", save_array)
+    # np.save("results/04-01-2022_dlc_gc4_epoch-90_val-pred_zero-pad", save_array)
+    # np.save("results/04-03-2022_dlc_zero_pad_epoch-89_val-pred_reflect-pad", save_array)
+    # np.save("results/04-03-2022_dlc_zero_pad_epoch-89_val-pred_zero-pad", save_array)
+    np.save("results/04-03-2022_sdn_epoch-59_val-pred_zero-pad", save_array)
 
 
 if __name__ == "__main__":
@@ -160,5 +165,7 @@ if __name__ == "__main__":
     # interp_pose = np.load("results/nil/gibbon_swingDLC_resnet50_gibbons_interpol.npy")
     # overlay_interp(interp_pose)
 
-    model = load_model("results/04-01-2022_dlc_gc4/epoch-90.h5")
+    # model = load_model("results/04-01-2022_dlc_gc4/epoch-90.h5")
+    # model = load_model("results/04-03-2022_dlc_zero_pad/epoch-89.h5")
+    model = load_model("results/04-03-2022_sdn/epoch-59.h5")
     pred_entire_dataset(model)
