@@ -10,17 +10,15 @@ import glfw
 model = mujoco_py.load_model_from_path("/home/niloofar/Documents/coursework/cpsc533r/project/mujoco_sim/models/gibbon3d.xml")
 
 # 23 joints from mujoco xml model
-mujoco_joint_names = [ 'abdomen_z', 'abdomen_y', 'abdomen_x', 
+mujoco_joint_names = [ #'abdomen_z', 'abdomen_y', 'abdomen_x', 
                 'right_hip_x', 'right_hip_z', 'right_hip_y', 
-                'right_knee', 'right_ankle', 
+                'right_knee',
                 'left_hip_x', 'left_hip_z', 'left_hip_y', 
-                'left_knee', 'left_ankle', 
+                'left_knee', 
                 'right_shoulder_x', 'right_shoulder_y', 
-                'right_elbow_z', 'right_elbow_y', 
-                'right_wrist', 
+                'right_elbow_z', 'right_elbow_y',
                 'left_shoulder_x', 'left_shoulder_y', 
-                'left_elbow_z', 'left_elbow_y', 
-                'left_wrist']
+                'left_elbow_z', 'left_elbow_y']
 
 # 12 joints to match with DLC pose estimation results
 target_joint_names = ['head', 
@@ -41,74 +39,174 @@ target_joint_names = ['head',
 # network input data: [[x0, y0], [x1, y1], ..., [x11, y11]]
 # network output data: xml file with 23 joints
 
-# Now how do we turn the 23 joints into the 12 input data for training?
+def computePositionData3D_naive(data):
+    positions = []
+    positions.append(data.get_body_xpos("head"))
+    positions.append(data.get_body_xpos("right_upper_arm"))
+    positions.append(data.get_body_xpos("right_lower_arm"))
+    positions.append(data.get_body_xpos("right_hand"))
+    positions.append(data.get_body_xpos("left_upper_arm"))
+    positions.append(data.get_body_xpos("left_lower_arm"))
+    positions.append(data.get_body_xpos("left_hand"))
+    positions.append(data.get_body_xpos("pelvis"))
+    positions.append(data.get_body_xpos("right_shin"))
+    positions.append(data.get_body_xpos("right_foot"))
+    positions.append(data.get_body_xpos("left_shin"))
+    positions.append(data.get_body_xpos("left_foot"))
+    return positions
+
 def computePositionData3D(data):
-    positions = [] # np.zeros((12, 3))
+    positions_3d = [] # np.zeros((12, 3))
+
+    joint_qpos = []
+    joint_axis = []
+
+    print("\n3D compute:")
+    for j in range(0, len(mujoco_joint_names)):
+        pos = data.get_joint_qpos(mujoco_joint_names[j])
+        axis = data.get_joint_xaxis(mujoco_joint_names[j])
+        joint_qpos.append(pos)
+        joint_axis.append(axis)
+        print(mujoco_joint_names[j], ": ", pos, axis)
+        
 
     #head
-    head_pos = data.get_body_xpos("head")
-    positions.append(head_pos)
+    head_pos = data.get_body_xpos("gibbon3d") + data.get_body_xpos("head")
+    positions_3d.append(head_pos) # head
 
-    # upper body right
-    right_upper_arm_pos = data.get_body_xpos("right_upper_arm")
-    right_shoulder_pos = right_upper_arm_pos + [data.get_joint_qpos("right_shoulder_x"), data.get_joint_qpos("right_shoulder_y"), 0.]
-    positions.append(right_shoulder_pos)
+    # right upper arm
+    right_upper_arm_pos = data.get_body_xpos("gibbon3d") + data.get_body_xpos("right_upper_arm")
+    positions_3d.append(right_upper_arm_pos) # right_shoulder
 
-    right_lower_arm_pos = data.get_body_xpos("right_lower_arm") #right_upper_arm_pos + 
-    right_elbow_pos = right_lower_arm_pos + [0., data.get_joint_qpos("right_elbow_y"), data.get_joint_qpos("right_elbow_z")]
-    positions.append(right_elbow_pos)
+    # right lower arm
+    angle = data.get_joint_qpos("right_shoulder_x")
+    axis = data.get_joint_xaxis("right_shoulder_x")
+    shoulder_rot_x = get_rotation_matrix(axis, angle)
 
-    right_hand_pos =  data.get_body_xpos("right_hand") # right_lower_arm_pos +
-    right_wrist_pos = right_hand_pos + [0., data.get_joint_qpos("right_wrist"), 0.]
-    positions.append(right_wrist_pos)
+    angle = data.get_joint_qpos("right_shoulder_y")
+    axis = data.get_joint_xaxis("right_shoulder_y")
+    shoulder_rot_y = get_rotation_matrix(axis, angle)
 
-    # upper body left
-    left_upper_arm_pos = data.get_body_xpos("left_upper_arm")
-    left_shoulder_pos = left_upper_arm_pos + [data.get_joint_qpos("left_shoulder_x"), data.get_joint_qpos("left_shoulder_y"), 0.]
-    positions.append(left_shoulder_pos)
+    right_elbow_rel_pos = data.get_body_xpos("right_lower_arm")
+    right_elbow_pos = right_upper_arm_pos + shoulder_rot_y.dot(shoulder_rot_x.dot(right_elbow_rel_pos - right_upper_arm_pos))
 
-    left_lower_arm_pos = data.get_body_xpos("left_lower_arm") # left_upper_arm_pos + 
-    left_elbow_pos = left_lower_arm_pos + [0., data.get_joint_qpos("left_elbow_y"), data.get_joint_qpos("left_elbow_z")]
-    positions.append(left_elbow_pos)
+    positions_3d.append(right_elbow_pos) # right_elbow
 
-    left_hand_pos = data.get_body_xpos("left_hand") # left_lower_arm_pos + 
-    left_wrist_pos = left_hand_pos + [0., data.get_joint_qpos("left_wrist"), 0.]
-    positions.append(left_wrist_pos)
+    # right hand
+    angle = data.get_joint_qpos("right_elbow_z")
+    axis = data.get_joint_xaxis("right_elbow_z")
+    elbow_rot_z = get_rotation_matrix(axis, angle)
+
+    angle = data.get_joint_qpos("right_elbow_y")
+    axis = data.get_joint_xaxis("right_elbow_y")
+    elbow_rot_y = get_rotation_matrix(axis, angle)
+
+    right_wrist_rel_pos = data.get_body_xpos("right_hand")
+    right_wrist_pos = right_elbow_pos + elbow_rot_z.dot(elbow_rot_y.dot(right_wrist_rel_pos - right_elbow_pos))
+
+    positions_3d.append(right_wrist_pos) # right_wrist
+
+    # left upper arm
+    left_upper_arm_pos = data.get_body_xpos("gibbon3d") + data.get_body_xpos("left_upper_arm")
+    positions_3d.append(left_upper_arm_pos) # left_shoulder
+
+    # left lower arm
+    angle = data.get_joint_qpos("left_shoulder_x")
+    axis = data.get_joint_xaxis("left_shoulder_x")
+    shoulder_rot_x = get_rotation_matrix(axis, angle)
+
+    angle = data.get_joint_qpos("left_shoulder_y")
+    axis = data.get_joint_xaxis("left_shoulder_y")
+    shoulder_rot_y = get_rotation_matrix(axis, angle)
+
+    left_elbow_rel_pos = data.get_body_xpos("left_lower_arm")
+    left_elbow_pos = left_upper_arm_pos + shoulder_rot_y.dot(shoulder_rot_x.dot(left_elbow_rel_pos - left_upper_arm_pos))
+
+    positions_3d.append(left_elbow_pos) # left_elbow
+
+    # left hand
+    angle = data.get_joint_qpos("left_elbow_z")
+    axis = data.get_joint_xaxis("left_elbow_z")
+    elbow_rot_z = get_rotation_matrix(axis, angle)
+
+    angle = data.get_joint_qpos("left_elbow_y")
+    axis = data.get_joint_xaxis("left_elbow_y")
+    elbow_rot_y = get_rotation_matrix(axis, angle)
+
+    left_wrist_rel_pos = data.get_body_xpos("left_hand")
+    left_wrist_pos = left_elbow_pos + elbow_rot_z.dot(elbow_rot_y.dot(left_wrist_rel_pos - left_elbow_pos))
+
+    positions_3d.append(left_wrist_pos) # left_wrist
 
     # lower body
-    waist_pos = data.get_body_xpos("waist")
+    waist_pos = data.get_body_xpos("gibbon3d") + data.get_body_xpos("waist")
     pelvis_pos = waist_pos + data.get_body_xpos("pelvis")
-    right_thigh_pos = data.get_body_xpos("right_thigh") # pelvis_pos + 
-    left_thigh_pos = data.get_body_xpos("left_thigh") #pelvis_pos + 
+    right_thigh_pos = pelvis_pos + data.get_body_xpos("right_thigh")
+    left_thigh_pos = pelvis_pos + data.get_body_xpos("left_thigh")
+    #hip_pos = 0.5 * (right_thigh_pos + left_thigh_pos)
+    hip_pos = waist_pos
 
-    # hip
-    right_hip_pos = right_thigh_pos + [data.get_joint_qpos("right_hip_x"), data.get_joint_qpos("right_hip_y"), data.get_joint_qpos("right_hip_z")]
-    left_hip_pos = left_thigh_pos + [data.get_joint_qpos("left_hip_x"), data.get_joint_qpos("left_hip_y"), data.get_joint_qpos("left_hip_z")]
-    hip_pos = 0.5 * (right_hip_pos + left_hip_pos)
-    positions.append(hip_pos)
+    positions_3d.append(hip_pos)  # hip
 
-    # right lower body
-    right_shin_pos =  data.get_body_xpos("right_shin") #right_thigh_pos +
-    right_knee_pos = right_shin_pos + [0., data.get_joint_qpos("right_knee"), 0.]
-    positions.append(right_knee_pos)
+    #right knee
+    angle = data.get_joint_qpos("right_hip_x")
+    axis = data.get_joint_xaxis("right_hip_x")
+    hip_rot_x = get_rotation_matrix(axis, angle)
 
-    right_foot_pos =  data.get_body_xpos("right_foot") #right_thigh_pos +
-    right_ankle_pos = right_foot_pos + data.get_joint_qpos("right_ankle")
-    positions.append(right_ankle_pos)
+    angle = data.get_joint_qpos("right_hip_y")
+    axis = data.get_joint_xaxis("right_hip_y")
+    hip_rot_y = get_rotation_matrix(axis, angle)
 
-    # left lower body
-    left_shin_pos = data.get_body_xpos("left_shin") # left_thigh_pos + 
-    left_knee_pos = left_shin_pos + [0., data.get_joint_qpos("left_knee"), 0.]
-    positions.append(left_knee_pos)
+    angle = data.get_joint_qpos("right_hip_z")
+    axis = data.get_joint_xaxis("right_hip_z")
+    hip_rot_z = get_rotation_matrix(axis, angle)
 
-    left_foot_pos = data.get_body_xpos("left_foot") # left_thigh_pos +
-    left_ankle_pos = left_foot_pos + data.get_joint_qpos("left_ankle")
-    positions.append(left_ankle_pos)
+    right_knee_rel_pos = data.get_body_xpos("right_shin")
+    right_knee_pos = right_thigh_pos + hip_rot_x.dot(hip_rot_y.dot(hip_rot_z.dot(right_knee_rel_pos - right_thigh_pos)))
+    right_shin_pos = right_knee_pos
 
-    # print("\n", len(positions), ", ", len(positions[0]))
-    # print(positions)
+    positions_3d.append(right_knee_pos) # right_knee
 
-    return positions
+    # right ankle
+    angle = data.get_joint_qpos("right_knee")
+    axis = data.get_joint_xaxis("right_knee")
+    knee_rot = get_rotation_matrix(axis, angle)
+
+    right_ankle_rel_pos = data.get_body_xpos("right_foot")
+    right_ankle_pos = right_shin_pos + knee_rot.dot(right_ankle_rel_pos - right_shin_pos)
+
+    positions_3d.append(right_ankle_pos) # right_ankle
+
+    #left hip
+    angle = data.get_joint_qpos("left_hip_x")
+    axis = data.get_joint_xaxis("left_hip_x")
+    hip_rot_x = get_rotation_matrix(axis, angle)
+
+    angle = data.get_joint_qpos("left_hip_y")
+    axis = data.get_joint_xaxis("left_hip_y")
+    hip_rot_y = get_rotation_matrix(axis, angle)
+
+    angle = data.get_joint_qpos("left_hip_z")
+    axis = data.get_joint_xaxis("left_hip_z")
+    hip_rot_z = get_rotation_matrix(axis, angle)
+
+    left_knee_rel_pos = data.get_body_xpos("left_shin")
+    left_knee_pos = left_thigh_pos + hip_rot_x.dot(hip_rot_y.dot(hip_rot_z.dot(left_knee_rel_pos - left_thigh_pos)))
+    left_shin_pos = left_knee_pos
+
+    positions_3d.append(left_knee_pos) # left_knee
+
+    # left ankle
+    angle = data.get_joint_qpos("left_knee")
+    axis = data.get_joint_xaxis("left_knee")
+    knee_rot = get_rotation_matrix(axis, angle)
+
+    left_ankle_rel_pos = data.get_body_xpos("left_foot")
+    left_ankle_pos = left_shin_pos + knee_rot.dot(left_ankle_rel_pos - left_shin_pos)
+
+    positions_3d.append(left_ankle_pos) # left_ankle
+
+    return positions_3d
 
 def get_rotation_matrix(axis, theta):
     """
@@ -178,7 +276,6 @@ def project_joints_to_camera_plane(pos3d, cam_pos, cam_normal):
         p = pos - cam_pos
         pos2d = [p.dot(cam_x), p.dot(cam_y)]
         projected_pos2d.append(pos2d)
-        print(p.dot(cam_z))
 
     return projected_pos2d, [cam_x, cam_y, cam_z]
 
@@ -188,25 +285,16 @@ def construct_image(cam_pos, cam_coord, projected_pos2d, write_path):
     img[256,256] = [0,255,0]
 
     # map from 3D screen of 5. by 5. to image of 256 by 256
-    width_scale = 256 / 5
-    height_scale = 256 / 5
     uniform_scale = 256 / 2
 
     projected_pos2d = np.array(projected_pos2d)
     scaled_points = 256 - np.floor(projected_pos2d * uniform_scale).astype(int)
-    # for i in range(len(scaled_points)):
-    #     # for x in range(10):
-    #     #     for y in range(10):
-    #     #         img[ scaled_points[i][1] + y, scaled_points[i][0] + x] = joint_colors[i]
-    #     plt.plot(scaled_points[i][1], scaled_points[i][0], marker = 'o')
-
-# target_joint_names = ['head', 
-#                     'right_shoulder', 'right_elbow', 'right_wrist',
-#                     'left_shoulder', 'left_elbow', 'left_wrist',
-#                     'hip',
-#                     'right_knee', 'right_ankle',
-#                     'left_knee', 'left_ankle']
-
+    # target_joint_names = ['head', 
+    #                 'right_shoulder', 'right_elbow', 'right_wrist',
+    #                 'left_shoulder', 'left_elbow', 'left_wrist',
+    #                 'hip',
+    #                 'right_knee', 'right_ankle',
+    #                 'left_knee', 'left_ankle']
 
     # head to hip
     x1, y1 = [scaled_points[0][0], scaled_points[7][0]], [scaled_points[0][1], scaled_points[7][1]]
@@ -248,8 +336,10 @@ def construct_image(cam_pos, cam_coord, projected_pos2d, write_path):
     x1, y1 = [scaled_points[10][0], scaled_points[11][0]], [scaled_points[10][1], scaled_points[11][1]]
     plt.plot(x1, y1, marker = 'o')
 
+    plt.xlim([0, 400])
+    plt.ylim([0, 400])
     plt.imshow(img)
-    plt.show()
+    #plt.show()
     plt.savefig(write_path)
     plt.clf()
     return img
@@ -284,10 +374,12 @@ def runSim():
             # viewer.cam.lookat[:] = model.stat.center[:]
 
             # set camera random properties
-            viewer.cam.distance = random.uniform(cam_distance_range[0], cam_distance_range[1])
-            viewer.cam.elevation = random.uniform(cam_elevation_range[0], cam_elevation_range[1])
-            viewer.cam.azimuth = random.uniform(cam_azimuth_range[0], cam_azimuth_range[1])
-            viewer.cam.lookat[:] = model.stat.center[:]
+            # viewer.cam.distance = random.uniform(cam_distance_range[0], cam_distance_range[1])
+            # viewer.cam.elevation = random.uniform(cam_elevation_range[0], cam_elevation_range[1])
+            # viewer.cam.azimuth = random.uniform(cam_azimuth_range[0], cam_azimuth_range[1])
+            
+            viewer.cam.distance = 2.
+            #viewer.cam.lookat[:] = model.stat.center[:]
             gibbon_pos = data.get_body_xpos("gibbon3d")
             viewer.cam.lookat[:] = gibbon_pos
 
@@ -297,24 +389,30 @@ def runSim():
             state = sim.get_state()
             # data.set_joint_qpos("right_knee", data.qpos[6] + 0.05)
 
-            # for j in range(0, 23):
-            #     joint_range = model.jnt_range[j]
-            #     pos = data.get_joint_qpos(mujoco_joint_names[j])
-            #     print(mujoco_joint_names[j], ": ", pos)
-            #     randpos = random.uniform(joint_range[0], joint_range[1])
-            #     data.set_joint_qpos(mujoco_joint_names[j], randpos)
+            for j in range(0,len(mujoco_joint_names)):
+                # if j == 3 or j == 4 or j == 5 or j == 8 or j == 9 or j == 10:
+                #     continue
+                joint_range = model.jnt_range[j]
+                pos = data.get_joint_qpos(mujoco_joint_names[j])
+                randpos = random.uniform(joint_range[0], joint_range[1])
+                data.set_joint_qpos(mujoco_joint_names[j], randpos)
+                #data.qpos[j] = randpos
+                print(mujoco_joint_names[j], ": ", randpos)
+                print(joint_range)
             
             #test cam settings
-            # viewer.cam.azimuth = 45
-            # viewer.cam.elevation = 45
+            viewer.cam.azimuth = 0
+            viewer.cam.elevation = 0
 
             print("\n", count)
-            joint_positions = computePositionData3D(data)
+            joint_positions = computePositionData3D_naive(data)
             cam_pos = get_camera_pos(viewer.cam)
             cam_norm = get_camera_normal(viewer.cam)
             pos_2d, cam_coord = project_joints_to_camera_plane(joint_positions, cam_pos, cam_norm)
 
             count += 1
+
+            #sim.forward()
             img = construct_image(cam_pos, cam_coord, pos_2d, f'/home/niloofar/Documents/coursework/cpsc533r/project/mujoco_sim/output_png/{count:05d}.png')
             with open(f"/home/niloofar/Documents/coursework/cpsc533r/project/mujoco_sim/output_xml/gibbon3d_{count:05d}.xml", 'w') as fd:
                 sim.save(fd)
@@ -325,8 +423,151 @@ def runSim():
             # plt.savefig(f'/home/niloofar/Documents/coursework/cpsc533r/project/mujoco_sim/output_png/{count:05d}.png')
 
         viewer.render()
-        # if count > 100000:
-        #     break
 
 if __name__ == '__main__':
     runSim()
+
+
+# def computePositionData3D_rel(data):
+#     positions = [] # np.zeros((12, 3))
+
+#     #head
+#     head_pos = data.get_body_xpos("head")
+#     positions.append(head_pos)
+
+#     # upper body right
+#     right_upper_arm_pos = data.get_body_xpos("gibbon3d") + data.get_body_xpos("right_upper_arm")
+#     right_shoulder_pos = right_upper_arm_pos + [data.get_joint_qpos("right_shoulder_x"), data.get_joint_qpos("right_shoulder_y"), 0.]
+#     positions.append(right_shoulder_pos)
+
+#     right_lower_arm_pos = right_upper_arm_pos + data.get_body_xpos("right_lower_arm") 
+#     right_elbow_pos = right_lower_arm_pos + [0., data.get_joint_qpos("right_elbow_y"), data.get_joint_qpos("right_elbow_z")]
+#     positions.append(right_elbow_pos)
+
+#     right_hand_pos =  right_lower_arm_pos + data.get_body_xpos("right_hand") 
+#     right_wrist_pos = right_hand_pos + [0., data.get_joint_qpos("right_wrist"), 0.]
+#     positions.append(right_wrist_pos)
+
+#     # upper body left
+#     left_upper_arm_pos = data.get_body_xpos("gibbon3d") + data.get_body_xpos("left_upper_arm")
+#     left_shoulder_pos = left_upper_arm_pos + [-data.get_joint_qpos("left_shoulder_x"), data.get_joint_qpos("left_shoulder_y"), 0.]
+#     positions.append(left_shoulder_pos)
+
+#     left_lower_arm_pos = left_upper_arm_pos + data.get_body_xpos("left_lower_arm")
+#     left_elbow_pos = left_lower_arm_pos + [0., data.get_joint_qpos("left_elbow_y"), -data.get_joint_qpos("left_elbow_z")]
+#     positions.append(left_elbow_pos)
+
+#     left_hand_pos = left_lower_arm_pos + data.get_body_xpos("left_hand") 
+#     left_wrist_pos = left_hand_pos + [0., data.get_joint_qpos("left_wrist"), 0.]
+#     positions.append(left_wrist_pos)
+
+#     # lower body
+#     waist_pos = data.get_body_xpos("gibbon3d") + data.get_body_xpos("waist")
+#     pelvis_pos = waist_pos + data.get_body_xpos("pelvis")
+#     right_thigh_pos = pelvis_pos + data.get_body_xpos("right_thigh")
+#     left_thigh_pos = pelvis_pos + data.get_body_xpos("left_thigh")
+
+#     # hip
+#     right_hip_pos = right_thigh_pos + [data.get_joint_qpos("right_hip_x"), data.get_joint_qpos("right_hip_y"), data.get_joint_qpos("right_hip_z")]
+#     left_hip_pos = left_thigh_pos + [-data.get_joint_qpos("left_hip_x"), data.get_joint_qpos("left_hip_y"), -data.get_joint_qpos("left_hip_z")]
+#     hip_pos = 0.5 * (right_hip_pos + left_hip_pos)
+#     positions.append(hip_pos)
+
+#     # right lower body
+#     right_shin_pos = right_thigh_pos + data.get_body_xpos("right_shin")
+#     right_knee_pos = right_shin_pos + [0., data.get_joint_qpos("right_knee"), 0.]
+#     positions.append(right_knee_pos)
+
+#     right_foot_pos = right_shin_pos + data.get_body_xpos("right_foot")
+#     right_ankle_pos = right_foot_pos + [0., data.get_joint_qpos("right_ankle"), 0.]
+#     positions.append(right_ankle_pos)
+
+#     # left lower body
+#     left_shin_pos = left_thigh_pos + data.get_body_xpos("left_shin") 
+#     left_knee_pos = left_shin_pos + [0., data.get_joint_qpos("left_knee"), 0.]
+#     positions.append(left_knee_pos)
+
+#     left_foot_pos = left_shin_pos + data.get_body_xpos("left_foot") # left_thigh_pos +
+#     left_ankle_pos = left_foot_pos + [0., data.get_joint_qpos("left_ankle"), 0.]
+#     positions.append(left_ankle_pos)
+
+#     # print("\n", len(positions), ", ", len(positions[0]))
+#     # print(positions)
+
+#     return positions
+
+# # Now how do we turn the 23 joints into the 12 input data for training?
+# def computePositionData3D(data):
+#     positions = [] # np.zeros((12, 3))
+
+#     print("\n3D compute:")
+#     for j in range(0, 23):
+#         # if j == 3 or j == 4 or j == 5 or j == 8 or j == 9 or j == 10:
+#         #     continue
+#         pos = data.get_joint_qpos(mujoco_joint_names[j])
+#         print(mujoco_joint_names[j], ": ", pos)
+
+#     #head
+#     head_pos = data.get_body_xpos("head")
+#     positions.append(head_pos)
+
+#     # upper body right
+#     right_upper_arm_pos = data.get_body_xpos("right_upper_arm")
+#     right_shoulder_pos = right_upper_arm_pos + [data.get_joint_qpos("right_shoulder_x"), data.get_joint_qpos("right_shoulder_y"), 0.]
+#     positions.append(right_shoulder_pos)
+
+#     right_lower_arm_pos = data.get_body_xpos("right_lower_arm") #right_upper_arm_pos + 
+#     right_elbow_pos = right_lower_arm_pos + [0., data.get_joint_qpos("right_elbow_y"), data.get_joint_qpos("right_elbow_z")]
+#     positions.append(right_elbow_pos)
+
+#     right_hand_pos =  data.get_body_xpos("right_hand") # right_lower_arm_pos +
+#     right_wrist_pos = right_hand_pos + [0., data.get_joint_qpos("right_wrist"), 0.]
+#     positions.append(right_wrist_pos)
+
+#     # upper body left
+#     left_upper_arm_pos = data.get_body_xpos("left_upper_arm")
+#     left_shoulder_pos = left_upper_arm_pos + [-data.get_joint_qpos("left_shoulder_x"), data.get_joint_qpos("left_shoulder_y"), 0.]
+#     positions.append(left_shoulder_pos)
+
+#     left_lower_arm_pos = data.get_body_xpos("left_lower_arm") # left_upper_arm_pos + 
+#     left_elbow_pos = left_lower_arm_pos + [0., data.get_joint_qpos("left_elbow_y"), -data.get_joint_qpos("left_elbow_z")]
+#     positions.append(left_elbow_pos)
+
+#     left_hand_pos = data.get_body_xpos("left_hand") # left_lower_arm_pos + 
+#     left_wrist_pos = left_hand_pos + [0., data.get_joint_qpos("left_wrist"), 0.]
+#     positions.append(left_wrist_pos)
+
+#     # lower body
+#     waist_pos = data.get_body_xpos("waist")
+#     pelvis_pos = waist_pos + data.get_body_xpos("pelvis")
+#     right_thigh_pos = data.get_body_xpos("right_thigh") # pelvis_pos + 
+#     left_thigh_pos = data.get_body_xpos("left_thigh") #pelvis_pos + 
+
+#     # hip
+#     right_hip_pos = right_thigh_pos + [data.get_joint_qpos("right_hip_x"), data.get_joint_qpos("right_hip_y"), data.get_joint_qpos("right_hip_z")]
+#     left_hip_pos = left_thigh_pos + [-data.get_joint_qpos("left_hip_x"), data.get_joint_qpos("left_hip_y"), -data.get_joint_qpos("left_hip_z")]
+#     hip_pos = 0.5 * (right_hip_pos + left_hip_pos)
+#     positions.append(hip_pos)
+
+#     # right lower body
+#     right_shin_pos =  data.get_body_xpos("right_shin") #right_thigh_pos +
+#     right_knee_pos = right_shin_pos + [0., data.get_joint_qpos("right_knee"), 0.]
+#     positions.append(right_knee_pos)
+
+#     right_foot_pos =  data.get_body_xpos("right_foot") #right_thigh_pos +
+#     right_ankle_pos = right_foot_pos + [0., data.get_joint_qpos("right_ankle"), 0.]
+#     positions.append(right_ankle_pos)
+
+#     # left lower body
+#     left_shin_pos = data.get_body_xpos("left_shin") # left_thigh_pos + 
+#     left_knee_pos = left_shin_pos + [0., data.get_joint_qpos("left_knee"), 0.]
+#     positions.append(left_knee_pos)
+
+#     left_foot_pos = data.get_body_xpos("left_foot") # left_thigh_pos +
+#     left_ankle_pos = left_foot_pos + [0., data.get_joint_qpos("left_ankle"), 0.]
+#     positions.append(left_ankle_pos)
+
+#     # print("\n", len(positions), ", ", len(positions[0]))
+#     # print(positions)
+
+#     return positions
