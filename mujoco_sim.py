@@ -9,6 +9,8 @@ import glfw
 
 training_data_csv = '/home/niloofar/Documents/coursework/cpsc533r/project/mujoco_sim/training/data.csv'
 labels_csv = '/home/niloofar/Documents/coursework/cpsc533r/project/mujoco_sim/training/labels.csv'
+data_count = 10000
+save_images = True
 
 image_output_path = '/home/niloofar/Documents/coursework/cpsc533r/project/mujoco_sim/output_png/'
 xml_output_path = '/home/niloofar/Documents/coursework/cpsc533r/project/mujoco_sim/output_xml/'      
@@ -334,11 +336,12 @@ def construct_image(projected_pos2d, write_path):
     # plt_size = 400
     # plt.xlim([0, plt_size])
     # plt.ylim([0, plt_size])
-    plt.imshow(img)
-    #plt.show()
-    plt.savefig(write_path)
-    plt.clf()
-    return img
+    if save_images:
+        plt.imshow(img)
+        #plt.show()
+        plt.savefig(write_path)
+        plt.clf()
+    return scaled_points.flatten()
 
 def runSim():
     sim = mujoco_py.MjSim(model)
@@ -353,11 +356,13 @@ def runSim():
     cam_distance_range = [model.stat.extent * 2, model.stat.extent * 5]
     cam_elevation_range = [-50, 50]
     cam_azimuth_range = [-180, 180]
+    
+    train = np.empty((0, len(target_joint_names) * 2))
+    labels = np.empty((0, len(mujoco_joint_names)))
 
     while True:
         t += 1
         sim.forward()
-
 
         #if t % 500 == 0: # slow down for visualization
         viewer.cam.trackbodyid = 1
@@ -373,12 +378,15 @@ def runSim():
         data = sim.data
         state = sim.get_state()
 
+        label_entry = np.array([])
         for j in range(0,len(mujoco_joint_names)):
             joint_range = model.jnt_range[j]
             pos = data.get_joint_qpos(mujoco_joint_names[j])
             randpos = random.uniform(joint_range[0], joint_range[1])
             data.set_joint_qpos(mujoco_joint_names[j], randpos)
+            label_entry = np.append(label_entry, randpos)
             #data.qpos[j] = randpos
+        labels = np.vstack([labels, label_entry])
         
         # #test cam settings
         # viewer.cam.azimuth = 90
@@ -391,13 +399,21 @@ def runSim():
 
         count += 1
 
-        construct_image(pos_2d, image_output_path + f'{count:05d}.png')
+        train_entry = construct_image(pos_2d, image_output_path + f'{count:05d}.png')
+        train= np.vstack([train, train_entry])
 
         with open(xml_output_path + f'gibbon3d_{count+1:05d}.xml', 'w') as fd:
             sim.save(fd)
             print("Saved frame", count)
 
         viewer.render()
+
+        if count > data_count:
+            # print(train.shape)
+            # print(labels.shape)
+            np.savetxt(training_data_csv, train, delimiter=',')
+            np.savetxt(labels_csv, labels, delimiter=',')
+            break
 
 if __name__ == '__main__':
     runSim()
